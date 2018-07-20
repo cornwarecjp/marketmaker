@@ -9,11 +9,11 @@ secret_key =
 [marketmaker]
 #Interval in seconds
 #BL3P allows 600 calls per 10 minutes = 1 call per second
-#We do multiple calls per iteration, so set a safe value here:
-interval = 10
+#Set a safe value here:
+interval = 4
 
 #Number of buy/sell orders
-numOrders = 5
+numOrders = 6
 
 #Minimum spread in our orders
 #BL3P charges 0.25%; we should be way above this to make a profit.
