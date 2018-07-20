@@ -3,6 +3,7 @@
 import configparser
 import json
 import sys
+import time
 
 import bl3p
 
@@ -23,7 +24,9 @@ class MarketMaker:
 
 
 	def run(self):
-		pass
+		while True:
+			time.sleep(self.interval)
+			print('MarketMaker iteration')
 
 
 
