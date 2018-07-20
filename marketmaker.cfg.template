@@ -12,6 +12,9 @@ secret_key =
 #We do multiple calls per iteration, so set a safe value here:
 interval = 10
 
+#Number of buy/sell orders
+numOrders = 5
+
 #Minimum spread in our orders
 #BL3P charges 0.25%; we should be way above this to make a profit.
 minSpread = 0.02
