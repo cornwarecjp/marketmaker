@@ -1,3 +1,21 @@
 [bl3p]
-public_key=
-secret_key=
+
+# ........-....-....-....-............
+public_key =
+
+# (long string with a-z/A-Z/0-9 and =)
+secret_key =
+
+[marketmaker]
+#Interval in seconds
+#BL3P allows 600 calls per 10 minutes = 1 call per second
+#We do multiple calls per iteration, so set a safe value here:
+interval = 10
+
+#Minimum spread in our orders
+#BL3P charges 0.25%; we should be way above this to make a profit.
+minSpread = 0.02
+
+#Fraction to hold in BTC
+fractionBTC = 0.5
+

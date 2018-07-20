@@ -16,6 +16,9 @@ def d(j):
 class MarketMaker:
 	def __init__(self, exchange, config):
 		self.exchange = exchange
+		self.interval    = float(config.get('marketmaker', 'interval'))
+		self.minSpread   = float(config.get('marketmaker', 'minSpread'))
+		self.fractionBTC = float(config.get('marketmaker', 'fractionBTC'))
 		d(exchange.walletHistory('BTC', 10))
 
 
@@ -31,8 +34,8 @@ if len(sys.argv) == 2:
 else:
 	config.read('marketmaker.cfg')
 
-public_key = config.get('bl3p', 'public_key') # ........-....-....-....-............
-secret_key = config.get('bl3p', 'secret_key') # (long string with a-z/A-Z/0-9 and =)
+public_key = config.get('bl3p', 'public_key')
+secret_key = config.get('bl3p', 'secret_key')
 
 exchange = bl3p.Bl3pApi('https://api.bl3p.eu/1/', public_key, secret_key)
 
