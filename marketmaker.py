@@ -21,6 +21,12 @@ class Order:
 		self.price = price
 
 
+	def almostEqual(self, other, rel_tol):
+		return \
+			math.isclose(self.amount_funds, other.amount_funds, rel_tol=rel_tol) \
+			and \
+			math.isclose(self.price, other.price, rel_tol=rel_tol) \
+
 
 class MarketMaker:
 	def __init__(self, exchange, config):
@@ -77,8 +83,8 @@ class MarketMaker:
 		#Enter the market
 		self.bidOrders = []
 		self.askOrders = []
-		self.placeBidOrders()
-		self.placeAskOrders()
+		self.updateBidOrders()
+		self.updateAskOrders()
 
 
 	def run(self):
@@ -100,13 +106,14 @@ class MarketMaker:
 		return ret
 
 
-	def placeBidOrders(self):
+	def updateBidOrders(self):
 		print('Placing BID orders')
 		price = self.getImpliedPrice()
 		oldBalances = self.balances
 		multiplier = self.multiplier
 		print('Implied price: ', self.printablePrice(price))
 
+		newOrders = []
 		for i in range(self.numOrders):
 			price /= multiplier
 			multiplier = multiplier ** 2 #Double the step size the next time
@@ -120,18 +127,39 @@ class MarketMaker:
 
 			amount_funds = int(oldBalances[0] - newBalances[0])
 			print('Order: price %s, funds amount %d' % (self.printablePrice(price), amount_funds))
-			self.placeBidOrder(Order(amount_funds=amount_funds, price=price))
+			newOrders.append(Order(amount_funds=amount_funds, price=price))
 
 			oldBalances = newBalances
 
+		oldOrders = self.bidOrders[:]
 
-	def placeAskOrders(self):
+		#Remove matches from the lists
+		for new in newOrders[:]:
+			for old in oldOrders:
+				if old.almostEqual(new, 1e-5):
+					newOrders.remove(new)
+					oldOrders.remove(old)
+					break
+
+		#Cancel remaining (non-matching) old orders
+		for old in oldOrders:
+			self.cancelOrder(old)
+			self.bidOrders.remove(old)
+
+		#Add remaining (non-matching) new orders
+		for new in newOrders:
+			self.placeOrder(new, 'bid')
+			self.bidOrders.append(new)
+
+
+	def updateAskOrders(self):
 		print('Placing ASK orders')
 		price = self.getImpliedPrice()
 		oldBalances = self.balances
 		multiplier = self.multiplier
 		print('Implied price: ', self.printablePrice(price))
 
+		newOrders = []
 		for i in range(self.numOrders):
 			price *= multiplier
 			multiplier = multiplier ** 2 #Double the step size the next time
@@ -145,20 +173,32 @@ class MarketMaker:
 
 			amount_funds = int(newBalances[0] - oldBalances[0])
 			print('Order: price %s, funds amount %d' % (self.printablePrice(price), amount_funds))
-			self.placeAskOrder(Order(amount_funds=amount_funds, price=price))
+			newOrders.append(Order(amount_funds=amount_funds, price=price))
 
 			oldBalances = newBalances
 
+		oldOrders = self.askOrders[:]
 
-	def placeBidOrder(self, order):
-		self.placeOrder(order, 'bid', self.bidOrders)
+		#Remove matches from the lists
+		for new in newOrders[:]:
+			for old in oldOrders:
+				if old.almostEqual(new, 1e-5):
+					newOrders.remove(new)
+					oldOrders.remove(old)
+					break
+
+		#Cancel remaining (non-matching) old orders
+		for old in oldOrders:
+			self.cancelOrder(old)
+			self.askOrders.remove(old)
+
+		#Add remaining (non-matching) new orders
+		for new in newOrders:
+			self.placeOrder(new, 'ask')
+			self.askOrders.append(new)
 
 
-	def placeAskOrder(self, order):
-		self.placeOrder(order, 'ask', self.askOrders)
-
-
-	def placeOrder(self, order, typeName, orderList):
+	def placeOrder(self, order, typeName):
 		while True:
 			result = self.exchange.addOrder(self.market, typeName,
 				order_amount_funds=order.amount_funds,
@@ -167,10 +207,19 @@ class MarketMaker:
 			if result['result'] == 'success':
 				break
 			print('%s order placement failed; retrying' % typeName)
-			time.sleep(10 * self.interval)
+			time.sleep(self.interval)
 
 		order.id = result['data']['order_id']
-		orderList.append(order)
+
+
+	def cancelOrder(self, order):
+		while True:
+			result = self.exchange.cancelOrder(self.market, order.id)
+			d(result)
+			if result['result'] == 'success':
+				break
+			print('%s order cancelation failed; retrying' % typeName)
+			time.sleep(self.interval)
 
 
 	def getImpliedPrice(self):
