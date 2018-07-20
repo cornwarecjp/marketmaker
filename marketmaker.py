@@ -57,6 +57,17 @@ class OrderBook:
 		self.ask = []
 
 
+	def print(self, priceFormatter, fundsFormatter):
+		print('Bid:')
+		for order in self.bid:
+			print('Price: %s; Amount: %s' % \
+				(priceFormatter(order.price), fundsFormatter(order.amount_funds)))
+		print('Ask:')
+		for order in self.ask:
+			print('Price: %s; Amount: %s' % \
+				(priceFormatter(order.price), fundsFormatter(order.amount_funds)))
+
+
 class MarketMaker:
 	def __init__(self, exchange, config):
 		self.exchange = exchange
@@ -133,16 +144,23 @@ class MarketMaker:
 		desiredOrderBook.bid = self.makeBidOrders()
 		desiredOrderBook.ask = self.makeAskOrders()
 
+		print()
+		print('Current order book:')
+		currentOrderBook.print(self.printablePrice, self.printableFunds)
+
+		print()
+		print('Desired order book:')
+		desiredOrderBook.print(self.printablePrice, self.printableFunds)
+
 		self.updateOrders(currentOrderBook.bid, desiredOrderBook.bid, 'bid')
 		self.updateOrders(currentOrderBook.ask, desiredOrderBook.ask, 'ask')
 
 
 	def makeBidOrders(self):
-		print('New BID orders')
 		price = self.getImpliedPrice()
 		oldBalances = self.balances
 		multiplier = self.multiplier
-		print('Implied price: ', self.printablePrice(price))
+		#print('Implied price: ', self.printablePrice(price))
 
 		newOrders = []
 		for i in range(self.numOrders):
@@ -157,7 +175,7 @@ class MarketMaker:
 			newBalances = self.fractions[0] * totalValue, self.fractions[1] * totalValue / price
 
 			amount_funds = int(oldBalances[0] - newBalances[0])
-			print('Order: price %s, funds amount %d' % (self.printablePrice(price), amount_funds))
+			#print('Order: price %s, funds amount %d' % (self.printablePrice(price), amount_funds))
 			newOrders.append(Order(amount_funds=amount_funds, price=price))
 
 			oldBalances = newBalances
@@ -166,11 +184,10 @@ class MarketMaker:
 
 
 	def makeAskOrders(self):
-		print('New ASK orders')
 		price = self.getImpliedPrice()
 		oldBalances = self.balances
 		multiplier = self.multiplier
-		print('Implied price: ', self.printablePrice(price))
+		#print('Implied price: ', self.printablePrice(price))
 
 		newOrders = []
 		for i in range(self.numOrders):
@@ -185,7 +202,7 @@ class MarketMaker:
 			newBalances = self.fractions[0] * totalValue, self.fractions[1] * totalValue / price
 
 			amount_funds = int(newBalances[0] - oldBalances[0])
-			print('Order: price %s, funds amount %d' % (self.printablePrice(price), amount_funds))
+			#print('Order: price %s, funds amount %d' % (self.printablePrice(price), amount_funds))
 			newOrders.append(Order(amount_funds=amount_funds, price=price))
 
 			oldBalances = newBalances
@@ -251,6 +268,10 @@ class MarketMaker:
 		return '%s %s/%s' % (
 			price * self.exchange.getBtcMultiplier() / self.exchange.getEurMutiplier(),
 			self.assets[0], self.assets[1])
+
+
+	def printableFunds(self, amount):
+		return '%.02f %s' % (float(amount) / self.exchange.getEurMutiplier(), self.assets[0])
 
 
 config = configparser.RawConfigParser()
