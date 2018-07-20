@@ -109,9 +109,6 @@ class MarketMaker:
 				time.sleep(self.interval)
 			print('New balances: ', self.balances)
 
-		print('Implied price of current balances: ',
-			self.printablePrice(self.getImpliedPrice()))
-
 		#Enter the market
 		self.updateOrderBook()
 
@@ -144,6 +141,10 @@ class MarketMaker:
 
 
 	def updateOrderBook(self):
+		print()
+		print('Implied price of current balances: ',
+			self.printablePrice(self.getImpliedPrice()))
+
 		while True:
 			try:
 				currentOrderBook = OrderBook.getFromExchange(self.exchange, self.market)
