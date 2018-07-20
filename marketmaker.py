@@ -16,9 +16,10 @@ def d(j):
 
 
 class Order:
-	def __init__(self, amount_funds, price):
+	def __init__(self, amount_funds, price, id=None):
 		self.amount_funds = amount_funds
 		self.price = price
+		self.id = id
 
 
 	def almostEqual(self, other, rel_tol):
@@ -26,6 +27,34 @@ class Order:
 			math.isclose(self.amount_funds, other.amount_funds, rel_tol=rel_tol) \
 			and \
 			math.isclose(self.price, other.price, rel_tol=rel_tol) \
+
+
+class OrderBook:
+	@staticmethod
+	def getFromExchange(exchange, market):
+		ret = OrderBook()
+		result = exchange.getAllActiveOrders(market)
+		if result['result'] != 'success':
+			d(result)
+			raise Exception()
+
+		lists = {'ask': ret.ask, 'bid': ret.bid}
+
+		amountToInt = lambda x: int(x['value_int'])
+
+		for order in result['data']['orders']:
+			lists[order['type']].append(Order(
+				amount_funds = amountToInt(order['amount_funds']) - amountToInt(order['amount_funds_executed']),
+				price = float(amountToInt(order['price'])) / exchange.getBtcMultiplier(),
+				id = order['order_id']
+				))
+
+		return ret
+
+
+	def __init__(self):
+		self.bid = []
+		self.ask = []
 
 
 class MarketMaker:
@@ -43,14 +72,6 @@ class MarketMaker:
 		#minSpread = mul**2  - 1
 		self.multiplier = math.sqrt(1 + minSpread)
 		print('Multiplier: ', self.multiplier)
-
-		#Cancel all active orders
-		result = self.exchange.getAllActiveOrders(self.market)
-		assert result['result'] == 'success'
-		order_ids = [order['order_id'] for order in result['data']['orders']]
-		for id in order_ids:
-			result = self.exchange.cancelOrder(self.market, id)
-			assert result['result'] == 'success'
 
 		self.balances = 0, 0
 		self.updateBalances()
@@ -81,10 +102,7 @@ class MarketMaker:
 			self.printablePrice(self.getImpliedPrice()))
 
 		#Enter the market
-		self.bidOrders = []
-		self.askOrders = []
-		self.updateBidOrders()
-		self.updateAskOrders()
+		self.updateOrderBook()
 
 
 	def run(self):
@@ -106,8 +124,19 @@ class MarketMaker:
 		return ret
 
 
-	def updateBidOrders(self):
-		print('Placing BID orders')
+	def updateOrderBook(self):
+		currentOrderBook = OrderBook.getFromExchange(self.exchange, self.market)
+
+		desiredOrderBook = OrderBook()
+		desiredOrderBook.bid = self.makeBidOrders()
+		desiredOrderBook.ask = self.makeAskOrders()
+
+		self.updateOrders(currentOrderBook.bid, desiredOrderBook.bid, 'bid')
+		self.updateOrders(currentOrderBook.ask, desiredOrderBook.ask, 'ask')
+
+
+	def makeBidOrders(self):
+		print('New BID orders')
 		price = self.getImpliedPrice()
 		oldBalances = self.balances
 		multiplier = self.multiplier
@@ -131,29 +160,11 @@ class MarketMaker:
 
 			oldBalances = newBalances
 
-		oldOrders = self.bidOrders[:]
-
-		#Remove matches from the lists
-		for new in newOrders[:]:
-			for old in oldOrders:
-				if old.almostEqual(new, 1e-5):
-					newOrders.remove(new)
-					oldOrders.remove(old)
-					break
-
-		#Cancel remaining (non-matching) old orders
-		for old in oldOrders:
-			self.cancelOrder(old)
-			self.bidOrders.remove(old)
-
-		#Add remaining (non-matching) new orders
-		for new in newOrders:
-			self.placeOrder(new, 'bid')
-			self.bidOrders.append(new)
+		return newOrders
 
 
-	def updateAskOrders(self):
-		print('Placing ASK orders')
+	def makeAskOrders(self):
+		print('New ASK orders')
 		price = self.getImpliedPrice()
 		oldBalances = self.balances
 		multiplier = self.multiplier
@@ -177,8 +188,10 @@ class MarketMaker:
 
 			oldBalances = newBalances
 
-		oldOrders = self.askOrders[:]
+		return newOrders
 
+
+	def updateOrders(self, oldOrders, newOrders, typeName):
 		#Remove matches from the lists
 		for new in newOrders[:]:
 			for old in oldOrders:
@@ -190,15 +203,14 @@ class MarketMaker:
 		#Cancel remaining (non-matching) old orders
 		for old in oldOrders:
 			self.cancelOrder(old)
-			self.askOrders.remove(old)
 
 		#Add remaining (non-matching) new orders
 		for new in newOrders:
-			self.placeOrder(new, 'ask')
-			self.askOrders.append(new)
+			self.placeOrder(new, typeName)
 
 
 	def placeOrder(self, order, typeName):
+		print('Placing order')
 		while True:
 			result = self.exchange.addOrder(self.market, typeName,
 				order_amount_funds=order.amount_funds,
@@ -213,6 +225,7 @@ class MarketMaker:
 
 
 	def cancelOrder(self, order):
+		print('Canceling order')
 		while True:
 			result = self.exchange.cancelOrder(self.market, order.id)
 			d(result)
