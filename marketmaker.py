@@ -17,7 +17,7 @@ config = configparser.RawConfigParser()
 if len(sys.argv) == 2:
 	config.read(sys.argv[1])
 else:
-	config.read('bl3p.cfg')
+	config.read('marketmaker.cfg')
 
 public_key = config.get('bl3p', 'public_key') # ........-....-....-....-............
 secret_key = config.get('bl3p', 'secret_key') # (long string with a-z/A-Z/0-9 and =)
