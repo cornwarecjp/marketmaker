@@ -92,21 +92,27 @@ class Bl3pApi:
 
 	# Add order to your account.
 	# @method addOrder
-	# @param  market        'EUR'
-	# @param  order_type   	'bid' or 'ask'
-	#                       bid: used if you want to buy bitcoins
-	#                       ask: if you want to sell bitcoins
-	# @param  order_amount 	Amount to order *1e8 (so 1 bitcoin is 100000000)
-	# @param  order_price  	Price of order *1e5 (1 euro is 100000)
+	# @param  market            	'EUR'
+	# @param  order_type        	'bid' or 'ask'
+	#                           	bid: used if you want to buy bitcoins
+	#                           	ask: if you want to sell bitcoins
+	# @param  order_amount      	Amount to order *1e8 (so 1 bitcoin is 100000000)
+	# @param  order_amount_funds	Amount to order *1e5 (so 1 euro is 100000)
+	# @param  order_price       	Price of order *1e5 (1 euro is 100000)
 	# @return Result of the add order call
-	def addOrder(self, market, order_type, order_amount, order_price):
+	def addOrder(self, market, order_type, order_amount=None, order_amount_funds=None, order_price=None):
 
-		params = {
-			'type' : order_type,
-			'amount_int' : order_amount,
-			'price_int' : order_price,
-			'fee_currency' : 'BTC'
-			}
+		params = \
+		{
+		'type' : order_type,
+		'fee_currency' : 'BTC'
+		}
+		if order_amount is not None:
+			params['amount_int'] = order_amount
+		if order_amount_funds is not None:
+			params['amount_funds_int'] = order_amount_funds
+		if order_price is not None:
+			params['price_int'] = order_price
 
 		return self.apiCall('%sEUR/money/order/add' % market, params)
 
