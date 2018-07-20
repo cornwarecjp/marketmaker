@@ -127,6 +127,12 @@ class MarketMaker:
 	def updateBalances(self):
 		'Return value: indicates whether balances have changed'
 		result = exchange.getBalances()
+		if result['result'] != 'success':
+			d(result)
+			print('Error getting the balances')
+			#We got no data back - assume no balance change
+			return False
+
 		newBalances = \
 		[
 		int(result['data']['wallets'][c]['balance']['value_int'])
@@ -138,7 +144,14 @@ class MarketMaker:
 
 
 	def updateOrderBook(self):
-		currentOrderBook = OrderBook.getFromExchange(self.exchange, self.market)
+		while True:
+			try:
+				currentOrderBook = OrderBook.getFromExchange(self.exchange, self.market)
+			except:
+				print('Something went wrong getting the order book - will retry')
+			else:
+				break
+			time.sleep(self.interval)
 
 		desiredOrderBook = OrderBook()
 		desiredOrderBook.bid = self.makeBidOrders()
