@@ -108,7 +108,9 @@ class MarketMaker:
 	def run(self):
 		while True:
 			time.sleep(self.interval)
-			print('MarketMaker iteration')
+			if self.updateBalances():
+				print('Balances have changed; updating order book')
+				self.updateOrderBook()
 
 
 	def updateBalances(self):
@@ -215,9 +217,9 @@ class MarketMaker:
 			result = self.exchange.addOrder(self.market, typeName,
 				order_amount_funds=order.amount_funds,
 				order_price=int(order.price * self.exchange.getBtcMultiplier()))
-			d(result)
 			if result['result'] == 'success':
 				break
+			d(result)
 			print('%s order placement failed; retrying' % typeName)
 			time.sleep(self.interval)
 
@@ -228,9 +230,9 @@ class MarketMaker:
 		print('Canceling order')
 		while True:
 			result = self.exchange.cancelOrder(self.market, order.id)
-			d(result)
 			if result['result'] == 'success':
 				break
+			d(result)
 			print('%s order cancelation failed; retrying' % typeName)
 			time.sleep(self.interval)
 
