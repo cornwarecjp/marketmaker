@@ -9,7 +9,7 @@ import hashlib
 import hmac
 import json
 import pycurl
-import urllib
+import urllib.parse
 
 try:
     from io import BytesIO
@@ -39,24 +39,24 @@ class Bl3pApi:
 		nonce = '%d' % us
 
 		# generate the POST data string
-		post_data = urllib.urlencode(params)
+		post_data = urllib.parse.urlencode(params)
 
 		body = '%s%c%s' % (path, 0x00, post_data)
 
 		privkey_bin = base64.b64decode(self.secKey)
 
-		signature_bin = hmac.new(privkey_bin, body, hashlib.sha512).digest()
+		signature_bin = hmac.new(privkey_bin, body.encode(), hashlib.sha512).digest()
 
 		signature = base64.b64encode(signature_bin)
 
 		fullpath = '%s%s' % (self.url, path)
 
-		headers = [ 'Rest-Key: %s' % self.pubKey, 'Rest-Sign: %s' % signature ]
+		headers = [ 'Rest-Key: %s' % self.pubKey, 'Rest-Sign: %s' % signature.decode() ]
 
 		buffer = BytesIO()
 
 		c = pycurl.Curl()
-		c.setopt(c.USERAGENT, 'Mozilla/4.0 (compatible; BL3P Python client written by folkert@vanheusden.com; 0.1)');
+		c.setopt(c.USERAGENT, 'Mozilla/4.0 (compatible; BL3P Python 3 client written by folkert@vanheusden.com; 0.1)');
 		c.setopt(c.WRITEFUNCTION, buffer.write)
 		c.setopt(c.URL, fullpath);
 		c.setopt(c.POST, 1);
@@ -81,7 +81,7 @@ class Bl3pApi:
 
 		c.close()
 
-		return json.loads(buffer.getvalue())
+		return json.loads(buffer.getvalue().decode())
 
 	# multiply the btc value (e.g 1.3BTC) with this and round-up/down
 	def getBtcMultiplier(self):

@@ -1,6 +1,6 @@
-#! /usr/bin/python
+#!/usr/bin/env python3
 
-import ConfigParser
+import configparser
 import json
 import sys
 
@@ -9,10 +9,10 @@ import bl3p
 
 
 def d(j):
-	print json.dumps(j, sort_keys=True, indent=4, separators=(',', ': '))
+	print(json.dumps(j, sort_keys=True, indent=4, separators=(',', ': ')))
 
 # example:
-config = ConfigParser.RawConfigParser()
+config = configparser.RawConfigParser()
 
 if len(sys.argv) == 2:
 	config.read(sys.argv[1])
